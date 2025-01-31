@@ -3,15 +3,42 @@
 
 //Thread_pool
 
-Code_reader::Thread_pool* Code_reader::Thread_pool::singleton = nullptr;
+class Thread_pool {
+private:
+	static Thread_pool* singleton;
 
-std::vector<std::thread>* Code_reader::Thread_pool::threads = nullptr;
-std::deque<std::function<void()>>* Code_reader::Thread_pool::tasks = nullptr;
-std::mutex* Code_reader::Thread_pool::mutex = nullptr;
-std::condition_variable* Code_reader::Thread_pool::var = nullptr;
-bool* Code_reader::Thread_pool::end = nullptr;
+	static std::vector<std::thread>* threads;
+	static std::deque<std::function<void()>>* tasks;
+	static std::mutex* mutex;
+	static std::condition_variable* var;
+	static bool* end;
 
-Code_reader::Thread_pool::Thread_pool(const unsigned int& amount) {
+	Thread_pool(const unsigned int&);
+	~Thread_pool() = default;
+public:
+	void operator=(const Thread_pool&) = delete;
+	Thread_pool(const Thread_pool&) = delete;
+	Thread_pool(Thread_pool&&) = delete;
+
+	static Thread_pool* get_instance(const unsigned int&);
+	static Thread_pool* get_instance();
+
+	static void destroy();
+
+	void add_task(std::function<void()>);
+
+	std::size_t get_threads_amount() const;
+};
+
+Thread_pool* Thread_pool::singleton = nullptr;
+
+std::vector<std::thread>* Thread_pool::threads = nullptr;
+std::deque<std::function<void()>>* Thread_pool::tasks = nullptr;
+std::mutex* Thread_pool::mutex = nullptr;
+std::condition_variable* Thread_pool::var = nullptr;
+bool* Thread_pool::end = nullptr;
+
+Thread_pool::Thread_pool(const unsigned int& amount) {
 	threads = new std::vector<std::thread>{};
 	tasks = new std::deque<std::function<void()>>;
 	mutex = new std::mutex;
@@ -23,36 +50,40 @@ Code_reader::Thread_pool::Thread_pool(const unsigned int& amount) {
 
 	for (unsigned int i = 0; i < amount; i++) {
 		threads->emplace_back([this] {
-			while (!*end) {
+			do {
 				std::function<void()> task;
 				{
 					std::unique_lock<std::mutex> lock(*mutex);
 
 					var->wait(lock, [this] {return *end || !tasks->empty(); });
 
-					if (*end)
+					if (*end && tasks->empty())
 						return;
 
 					task = std::move(tasks->front());
 					tasks->pop_front();
 				}
 				task();
-			}
+			} while (true);
 			});
 	}
 }
 
-Code_reader::Thread_pool* Code_reader::Thread_pool::get_instance(const unsigned int& amount) {
+Thread_pool* Thread_pool::get_instance(const unsigned int& amount) {
 	if (singleton == nullptr) {
 		singleton = new Thread_pool{ amount };
 	}
 	return singleton;
 }
-Code_reader::Thread_pool* Code_reader::Thread_pool::get_instance() {
+Thread_pool* Thread_pool::get_instance() {
 	return get_instance(std::thread::hardware_concurrency());
 }
 
-void Code_reader::Thread_pool::destroy() {
+void Thread_pool::destroy() {
+	/*std::cout << "Size in destr: " << tasks->size() << std::endl;
+	while (!tasks->empty())
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));*/
+
 	{
 		std::unique_lock<std::mutex> lock{ *mutex };
 		*end = 1;
@@ -69,29 +100,36 @@ void Code_reader::Thread_pool::destroy() {
 	delete end;
 	delete mutex;
 	delete singleton;
+
+	singleton = nullptr;
 }
 
-void Code_reader::Thread_pool::add_task(std::function<void()> task) {
-	std::unique_lock<std::mutex> lock{ *mutex };
-	tasks->emplace_front(std::move(task));
+void Thread_pool::add_task(std::function<void()> task) {
+	{
+		std::unique_lock<std::mutex> lock{ *mutex };
+		tasks->emplace_front(std::move(task));
+	}
 	var->notify_one();
 }
 
-std::size_t Code_reader::Thread_pool::get_threads_amount() const {
+std::size_t Thread_pool::get_threads_amount() const {
 	return threads->size();
 }
 
 
 //Code_reader
 
-Code_reader::Code_reader() : Code_reader({}, {".vs", ".git"}, "Code_reader_result.txt") {}
+Code_reader::Code_reader() : Code_reader({}, { ".vs", ".git" }, "Code_reader_result.txt") {}
 Code_reader::Code_reader(const std::vector<std::string>& check_path) : Code_reader{ check_path, {".git", ".vs"}, "Code_reader_result.txt" } {}
 Code_reader::Code_reader(const std::vector<std::string>& check_path, const std::vector<std::string>& ignore_path)
 	: Code_reader{ check_path, ignore_path, "Code_reader_result.txt" } {}
+
 Code_reader::Code_reader(const std::vector<std::string>& check_path, const std::vector<std::string>& ignore_path, const std::string& save_location)
 	: code{ 0 }, blank{ 0 }, comment{ 0 }, file_processed{ 0 }, to_check{ check_path }, ignore_vec{ ignore_path },
-	 pool{ Thread_pool::get_instance() }, start{ std::chrono::high_resolution_clock::now() },
-	save_path{ "Code_reader_result.txt" } {}
+	pool{ Thread_pool::get_instance() }, start{ std::chrono::high_resolution_clock::now() },
+	save_path{ save_location }, mutex{}
+{
+}
 
 Code_reader::~Code_reader() {
 	Thread_pool::destroy();
@@ -116,12 +154,12 @@ void Code_reader::add_folder_to_check(const std::string& value) {
 	to_check.emplace_back(value);
 }
 
-void Code_reader::check_directory(const std::string& path) {
+void Code_reader::check_directory(const std::string path) {
 	for (const auto& file : std::filesystem::directory_iterator(path)) {
 		const std::string file_name = file.path().string().substr(path.length() + 1, std::string::npos);
 
 		bool is_ignored = 0;
-		for (const auto& ign : ignore_vec) {
+		for (const auto& ign :ignore_vec) {
 			if (file.path() == ign || file_name == ign) {
 				is_ignored = 1;
 				break;
@@ -130,33 +168,41 @@ void Code_reader::check_directory(const std::string& path) {
 
 		if (!is_ignored) {
 			if (std::filesystem::is_directory(file.path())) {
-				check_directory(file.path().string());
+				pool->add_task([this, file] {
+					check_directory(file.path().string());
+					});
 			}
 			else if (std::filesystem::is_regular_file(file.path())) {
-				check_file(file.path().string(), file_name);
+				pool->add_task([this, file, file_name] {
+					check_file(file.path().string(), file_name);
+					});
+
 			}
 		}
 
 	}
 }
-void Code_reader::check_file(const std::string& path, const std::string& file_name) {
+void Code_reader::check_file(const std::string path, const std::string file_name) {
+
 	const std::string file_extension = file_name.substr(file_name.find_first_of('.') + 1, std::string::npos);
 	if (file_extension == "cpp" || file_extension == "h" || file_extension == "c" || file_extension == "hpp") {
 		std::ifstream file{ path };
 
 		std::string line;
-		bool is_comment = 0, counted = 0;;
+		bool is_comment = 0, counted = 0;
+		unsigned long long comment_count{ 0 }, code_count{ 0 }, blank_count{ 0 };
+
 		while (std::getline(file, line)) {
 			auto comment_index = line.find_first_of("/");
 			if (comment_index != std::string::npos) {
 				auto text_index = line.find_first_of('"');
 				if (line[comment_index + 1] == '/' && comment_index < text_index) {
-					comment++;
+					comment_count++;
 					counted = 1;
 				}
 				else if (line[comment_index + 1] == '*' && comment_index < text_index) {
 					is_comment = 1;
-					comment++;
+					comment_count++;
 					if (line.find_last_of("/") != comment_index) {
 						comment_index = line.find_last_of("/");
 						if (line[comment_index - 1] == '*')
@@ -166,31 +212,41 @@ void Code_reader::check_file(const std::string& path, const std::string& file_na
 				else if (line[comment_index - 1] == '*') {
 					is_comment = 0;
 					counted = 1;
-					comment++;
+					comment_count++;
 				}
 			}
 			else if (is_comment) {
-				comment++;
+				comment_count++;
 			}
 
 			if (line.find_first_not_of("/*\t \n") != std::string::npos && !counted && !is_comment) {
-				code++;
+				code_count++;
 			}
 			else if (!counted && !is_comment) {
-				blank++;
+				blank_count++;
 			}
 			counted = 0;
 		}
 
 		file.close();
-		file_processed++;
+		{
+			std::lock_guard<std::mutex> lock{ mutex };
+
+			file_processed++;
+			code += code_count;
+			comment += comment_count;
+			blank += blank_count;
+		}
 	}
+
 }
 
 void Code_reader::check() {
 	for (std::size_t i = 0; i < to_check.size(); i++) {
 		if (std::filesystem::is_directory(to_check.at(i))) {
-			check_directory(to_check.at(i));
+			pool->add_task([this, i] {
+				check_directory(to_check.at(i));
+				});
 		}
 		else if (std::filesystem::is_regular_file(to_check.at(i))) {
 			const std::string file_name = to_check.at(i).substr(to_check.at(i).find_last_of('/') + 1, std::string::npos);

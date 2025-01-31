@@ -2,7 +2,11 @@
 #include <iostream>
 
 int main(){
-	Code_reader reader{ {"D:/Projects/CPP/Softserve/Task3"},{".vs", ".git"}, "Multi_thr_code_reader.txt"};
-	reader.check();
-	
+		std::string str{ "Multi.txt" }, check{ "D:/Projects/CPP/Softserve/Task3"};
+		std::string buff;
+		{
+			Code_reader reader{ {check} ,{".vs", ".git"}, str};
+			reader.check();
+		}
+
 }

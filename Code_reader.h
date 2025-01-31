@@ -11,39 +11,15 @@
 #include <filesystem>
 #include <chrono> 
 
+
+class Thread_pool;
+
 class Code_reader {
 private:
 	using time_type = std::chrono::steady_clock::time_point;
 
-	class Thread_pool {
-	private:
-		static Thread_pool* singleton;
-
-		static std::vector<std::thread>* threads;
-		static std::deque<std::function<void()>>* tasks;
-		static std::mutex* mutex;
-		static std::condition_variable* var;
-		static bool* end;
-
-		Thread_pool(const unsigned int&);
-		~Thread_pool() = default;
-	public:
-		void operator=(const Thread_pool&) = delete;
-		Thread_pool(const Thread_pool&) = delete;
-		Thread_pool(Thread_pool&&) = delete;
-
-		static Thread_pool* get_instance(const unsigned int&);
-		static Thread_pool* get_instance();
-
-		static void destroy();
-
-		void add_task(std::function<void()>);
-
-		std::size_t get_threads_amount() const;
-	};
-
-
 	Thread_pool* pool;
+	std::mutex mutex;
 
 	unsigned long long code;
 	unsigned long long blank;
@@ -57,8 +33,8 @@ private:
 	std::string save_path;
 	time_type start;
 
-	void check_directory(const std::string&);
-	void check_file(const std::string&, const std::string&);
+	void check_directory(const std::string);
+	void check_file(const std::string, const std::string);
 public:
 	Code_reader();
 	Code_reader(const std::vector<std::string>& check_path);
