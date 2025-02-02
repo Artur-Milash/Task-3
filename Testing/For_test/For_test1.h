@@ -56,13 +56,7 @@ public:
 
 	void ignore(const std::string&);
 
-	void remove_ignore(const std::string&);
-	void remove_all_ignore();
-	
-	void add_to_check(const std::string&);
-
-	void remove_check(const std::string&);
-	void remove_all_check();
+	void add_folder_to_check(const std::string&);
 
 	void check();
 
@@ -75,7 +69,5 @@ public:
 	unsigned long long get_blank_amount() const;
 	unsigned long long get_comment_amount() const;
 	unsigned int get_file_processed() const;
-
-	unsigned long long get_total() const;
 	std::chrono::milliseconds get_duration() const;
 };

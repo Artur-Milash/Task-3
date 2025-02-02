@@ -1,4 +1,6 @@
 ﻿cmake_minimum_required (VERSION 3.8)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED true)
 
 if (POLICY CMP0141)
   cmake_policy(SET CMP0141 NEW)
@@ -10,15 +12,16 @@ project ("Task_3")
 set(exe Task_3)
 set(lib Code_reader)
 set(testing Task_3_test)
+set(output ${PROJECT_SOURCE_DIR}/output)
+set(test_output ${PROJECT_SOURCE_DIR}/Testing)
 
 add_executable (${exe} "Main.cpp")
 add_library(${lib} "Code_reader.cpp")
 target_link_libraries(${exe} ${lib})
 
-if (CMAKE_VERSION VERSION_GREATER 3.12)
-  set_property(TARGET ${exe} PROPERTY CXX_STANDARD 20)
-  set_property(TARGET ${lib} PROPERTY CXX_STANDARD 20)
-endif()
+set_target_properties(${exe} PROPERTIES 
+	RUNTIME_OUTPUT_DIRECTORY ${output}
+	ARCHIVE_OUTPUT_DIRECTORY ${output})
 
 include(FetchContent)
 FetchContent_Declare(
@@ -33,4 +36,8 @@ enable_testing()
 add_executable(${testing} "Test.cpp")
 target_link_libraries(${testing} ${lib} gtest_main)
 add_test(NAME Code_reader_testing COMMAND ${testing})
+
+set_target_properties(${testing} PROPERTIES 
+	RUNTIME_OUTPUT_DIRECTORY ${test_output}
+	ARCHIVE_OUTPUT_DIRECTORY ${test_output})
 

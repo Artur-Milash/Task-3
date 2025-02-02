@@ -1,0 +1,6 @@
+File processed: 1
+Code lines: 4
+Comment lines: 6
+Blank lines: 2
+Total lines: 12
+Time spent: 0ms

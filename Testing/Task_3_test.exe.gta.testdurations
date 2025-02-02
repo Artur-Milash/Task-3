@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<GtaTestDurations xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Executable>D:\Projects\CPP\Softserve\Task3\Testing\Task_3_test.exe</Executable>
+  <TestDurations>
+    <TestDuration Test="Code_reader_test.Basic_count" Duration="3" />
+    <TestDuration Test="Code_reader_tests.Basic_count" Duration="4" />
+    <TestDuration Test="Code_reader_tests.Simple_comments" Duration="2" />
+    <TestDuration Test="Code_reader_tests.Priority_simple_comments_CODE" Duration="2" />
+    <TestDuration Test="Code_reader_tests.Priority_simple_comments_COMMENT" Duration="9" />
+    <TestDuration Test="Code_reader_tests.Priority_simple_comments_MIXED" Duration="8" />
+    <TestDuration Test="Code_reader_tests.Priority_large_comments_CODE" Duration="8" />
+    <TestDuration Test="Code_reader_tests.Priority_large_comments_COMMENT" Duration="1" />
+    <TestDuration Test="Code_reader_tests.Priority_large_comments_MIXED" Duration="8" />
+  </TestDurations>
+</GtaTestDurations>

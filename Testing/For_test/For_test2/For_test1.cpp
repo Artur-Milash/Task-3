@@ -1,4 +1,5 @@
-#include "Code_reader.h"
+#include "For_test1.h"
+#include <iostream>
 
 //Thread_pool
 
@@ -114,20 +115,20 @@ std::size_t Thread_pool::get_threads_amount() const {
 
 //Code_reader
 
-Code_reader::Code_reader() 
+Code_reader::Code_reader()
 	: Code_reader({}, { ".vs", ".git" }, "Code_reader_result.txt", CODE_READER_CODE_PRIORITY) {}
-Code_reader::Code_reader(const std::set<std::string>& check_path) 
+Code_reader::Code_reader(const std::set<std::string>& check_path)
 	: Code_reader{ check_path, {".git", ".vs"}, "Code_reader_result.txt", CODE_READER_CODE_PRIORITY } {}
 Code_reader::Code_reader(const std::set<std::string>& check_path, const std::set<std::string>& ignore_path)
 	: Code_reader{ check_path, ignore_path, "Code_reader_result.txt", CODE_READER_CODE_PRIORITY } {}
 Code_reader::Code_reader(const std::set<std::string>& check_path, const std::set<std::string>& ignore_path, const std::string& save_location)
-	: Code_reader{check_path, ignore_path, save_location, CODE_READER_CODE_PRIORITY} {}
+	: Code_reader{ check_path, ignore_path, save_location, CODE_READER_CODE_PRIORITY } {}
 
 Code_reader::Code_reader(const std::set<std::string>& check_path, const std::set<std::string>& ignore_path,
 	const std::string& save_location, const Code_reader_priority& value)
 	: code{ 0 }, blank{ 0 }, comment{ 0 }, file_processed{ 0 }, to_check{ check_path }, to_ignore{ ignore_path },
 	pool{ Thread_pool::get_instance() }, start{ std::chrono::high_resolution_clock::now() },
-	save_path{ save_location }, mutex{}, time_spent{ 0 }, priority{ (unsigned short) value } {}
+	save_path{ save_location }, mutex{}, time_spent{ 0 }, priority{ (unsigned short)value } {}
 
 Code_reader::~Code_reader() {
 	Thread_pool::destroy();
@@ -145,22 +146,8 @@ void Code_reader::ignore(const std::string& value) {
 	to_ignore.emplace(value);
 }
 
-void Code_reader::add_to_check(const std::string& value) {
+void Code_reader::add_folder_to_check(const std::string& value) {
 	to_check.emplace(value);
-}
-
-void Code_reader::remove_ignore(const std::string& value) {
-	to_ignore.erase(to_ignore.find(value));
-}
-void Code_reader::remove_all_ignore() {
-	to_ignore.clear();
-}
-
-void Code_reader::remove_check(const std::string& value) {
-	to_check.erase(to_check.find(value));
-}
-void Code_reader::remove_all_check() {
-	to_check.clear();
 }
 
 void Code_reader::check_directory(const std::string path) {
@@ -225,13 +212,13 @@ void Code_reader::check_file(const std::string path, const std::string file_name
 						break;
 					}
 				}
-				else if(!is_text) {
+				else if (!is_text) {
 					comment_count++;
 					is_counted = 1;
 				}
 			}
 			else if (line.find("/*") != std::string::npos && !is_comment) {
-				std::size_t position = line.find("/*"),first_text = line.find_first_of('"'),
+				std::size_t position = line.find("/*"), first_text = line.find_first_of('"'),
 					last_text = line.find_last_of('"');
 				bool is_text = 0;
 
@@ -259,7 +246,7 @@ void Code_reader::check_file(const std::string path, const std::string file_name
 						break;
 					}
 				}
-				else if(!is_text) {
+				else if (!is_text) {
 					comment_count++;
 					is_counted = 1;
 					is_comment = 1;
@@ -342,10 +329,6 @@ unsigned long long Code_reader::get_comment_amount() const {
 }
 unsigned int Code_reader::get_file_processed() const {
 	return file_processed;
-}
-
-unsigned long long Code_reader::get_total() const {
-	return code + blank + comment;
 }
 std::chrono::milliseconds Code_reader::get_duration() const {
 	return time_spent;
