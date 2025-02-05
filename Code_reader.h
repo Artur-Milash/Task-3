@@ -11,6 +11,8 @@
 #include <chrono> 
 #include <set>
 
+//Simple library to count code, comment and blank lines in cpp, h, hpp, c files
+
 const enum Code_reader_priority {
 	CODE_READER_CODE_PRIORITY,
 	CODE_READER_COMMENT_PRIORITY,
@@ -21,8 +23,6 @@ class Thread_pool;
 
 class Code_reader {
 private:
-	using time_type = std::chrono::steady_clock::time_point;
-
 	Thread_pool* pool;
 	std::mutex mutex;
 
@@ -37,11 +37,12 @@ private:
 
 	std::string save_path;
 
-	time_type start;
+	std::chrono::steady_clock::time_point start;
 	std::chrono::milliseconds time_spent;
 
 	unsigned short priority;
 
+	//main logic methods to check directories or files
 	void check_directory(const std::string);
 	void check_file(const std::string, const std::string);
 public:
@@ -54,23 +55,31 @@ public:
 
 	~Code_reader();
 
+	//add path to ignore
 	void ignore(const std::string&);
 
+	//remove paths from ignore set
 	void remove_ignore(const std::string&);
 	void remove_all_ignore();
 	
+	//add path to check
 	void add_to_check(const std::string&);
 
+	//remove paths from check set
 	void remove_check(const std::string&);
 	void remove_all_check();
 
+	//main logic public method (calls check_directory and/or check_file)
 	void check();
 
+	//method to set path for final output file
 	void set_save_location(const std::string&);
 
+	//methods to set and get priority
 	void set_priority(const Code_reader_priority&);
 	unsigned short get_priority() const;
 
+	//some getters for different variables
 	unsigned long long get_code_amount() const;
 	unsigned long long get_blank_amount() const;
 	unsigned long long get_comment_amount() const;

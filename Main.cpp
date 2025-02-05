@@ -2,8 +2,7 @@
 #include <iostream>
 
 int main() {
-	std::string save{ "Multi.txt" }, check{ "D:/Projects/CPP/Softserve/Task3" };
-	std::string buff;
+	std::string save{ "Multi.txt" }, check{  };
 	
 	Code_reader reader{ {check} ,{".vs", ".git"}, save};
 	reader.set_priority(CODE_READER_COMMENT_PRIORITY);
